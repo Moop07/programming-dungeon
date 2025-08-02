@@ -62,9 +62,20 @@ if __name__ == "__main__":
                 print("wants to close options")
                 current_buttons = previous_buttons
                 previous_buttons = []
-            elif event[:10] == "set volume": #only first 10 characters as the rest is the volume
-                volume = int(float(event[10:])) #we convert the rest of the event into the volume
-                settings["volume"] = volume
+            elif event == "set volume":
+                #finds the slider responsible for the volume
+                for slider in current_buttons:
+                    if slider.variable == "volume":
+                        #adjusts the volume to the value of the slider
+                        settings["volume"] = slider.value
+            elif event == "set simulation speed":
+                #finds the slider responsible for the sim speed
+                for slider in current_buttons:
+                    if slider.variable == "simulation speed":
+                        #adjusts the sim speed to the value of the slider
+                        settings["simulation speed"] = slider.value
+            elif event == "toggle fullscreen":
+                settings["fullscreen"] = not settings["fullscreen"]
             #functionality for more buttons can be easily added later by adding more elif statements here
             else:
                 pass
