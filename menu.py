@@ -1,9 +1,15 @@
 import pygame
 import sys
 screen = 0
-def set_screen(input_screen):
+WIDTH = 0
+LENGTH = 0
+def set_screen(input_screen, width, length):
+    global WIDTH
+    global LENGTH
     global screen
     screen = input_screen
+    WIDTH = width
+    LENGTH = length
 class button:
     def __init__(self, xpos, ypos, width, height, colour, text, screen, function):
         self.xpos = xpos
@@ -64,16 +70,39 @@ class slider(button):
         else:
             return False
 
+#no functionality, just displays text on the screen
+class text_box:
+    def __init__(self, xpos, ypos, width, height, text, text_size, screen):
+        self.xpos = xpos
+        self.ypos = ypos
+        self.width = width
+        self.height = height
+        self.text = text
+        self.text_size = text_size
+        self.screen = screen
+        self.variable = None
+
+    def draw_self(self):
+        font = pygame.font.SysFont('Corbel', self.text_size)
+        text = font.render(self.text, True, (0, 0, 0))
+        rectangle = text.get_rect()
+        rectangle.center = (self.xpos+self.width//2, self.ypos+self.height//2)
+        self.screen.blit(text, rectangle)
+    
+    def detect_mouse(self, mouse_position):
+        return False
 
 
 def initalise_menu_screen(): #returns a list of objects that get rendered
-    return [button(260, 600, 200, 76, (0, 0, 0), "Exit", screen, "quit"), button(260, 500, 200, 76, (0, 0, 0), "Options", screen, "open options"),
-    button(260, 400, 200, 76, (0, 0, 0), "Tutorial", screen, "open tutorial"), button(260, 300, 200, 76, (0, 0, 0), "Endless", screen, "open endless"),
-    button(260, 200, 200, 76, (0, 0, 0), "Level Select", screen, "open level select")]
+    return [button((WIDTH//2)-100, 600, 200, 76, (0, 0, 0), "Exit", screen, "quit"), button(WIDTH//2 - 100, 500, 200, 76, (0, 0, 0), "Options", screen, "open options"),
+    button(WIDTH//2 - 100, 400, 200, 76, (0, 0, 0), "Tutorial", screen, "open tutorial"), button(WIDTH//2 - 100, 300, 200, 76, (0, 0, 0), "Endless", screen, "open endless"),
+    button(WIDTH//2 - 100, 200, 200, 76, (0, 0, 0), "Level Select", screen, "open level select")]
 
 
 def open_options_menu(): #creates a surface and then places the options menus buttons on it
-    return[button(260, 600, 200, 76, (0, 0, 0), "Close", screen, "close options"),
-    button(210, 500, 300, 76, (0, 0, 0), "Toggle Fullscreen", screen, "toggle fullscreen"),
-    slider(210, 300, 300, 76, (255, 255, 255), screen, "set volume", "volume"),
-    slider(210, 400, 300, 76, (255, 255, 255), screen, "set simulation speed", "simulation speed")]
+    return[button(WIDTH//2 - 100, 600, 200, 76, (0, 0, 0), "Close", screen, "close options"),
+    button(WIDTH//2 - 150, 500, 300, 76, (0, 0, 0), "Toggle Fullscreen", screen, "toggle fullscreen"),
+    slider(WIDTH//2 - 150, 300, 300, 76, (255, 255, 255), screen, "set volume", "volume"),
+    text_box(WIDTH//2-250, 300, 100, 76, "volume", 35, screen),
+    slider(WIDTH//2 -150, 400, 300, 76, (255, 255, 255), screen, "set simulation speed", "simulation speed"),
+    text_box(WIDTH//2-300, 400, 100, 76, "simulation speed", 25, screen)]
