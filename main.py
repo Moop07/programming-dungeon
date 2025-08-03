@@ -2,12 +2,13 @@ import pygame
 import menu
 
 pygame.init()
-screen = pygame.display.set_mode((720, 720))
+screen_width = 720
+screen_length = 720
+screen = pygame.display.set_mode((screen_width, screen_length))
 clock = pygame.time.Clock()
 current_buttons = []
-previous_buttons = []
 running = True
-menu.set_screen(screen)
+menu.set_screen(screen, screen_width, screen_length)
 pygame.display.set_caption("Programming Dungeon")
 
 
@@ -22,6 +23,7 @@ button_events = []
 #retrieving the mouse position for the first time
 mouse_position = (0, 0)
 current_buttons += menu.initalise_menu_screen()
+current_menu = "main menu"
 if __name__ == "__main__":
     while running:
         for event in pygame.event.get():
@@ -39,8 +41,6 @@ if __name__ == "__main__":
         screen.fill((255, 255, 255))
         mouse_position = pygame.mouse.get_pos()
 
-        #for button in previous_buttons:
-        #    button.draw_self()
         for button in current_buttons:
             button.draw_self()
 
@@ -56,12 +56,11 @@ if __name__ == "__main__":
                 #this is so we can return easily, since the options menu is just a sub menu
                 #after that we can just clear the current buttons and add the buttons
                 #for the options menu
-                previous_buttons = current_buttons
                 current_buttons = menu.open_options_menu()
+                current_menu = "options menu"
             elif event == "close options":
-                print("wants to close options")
-                current_buttons = previous_buttons
-                previous_buttons = []
+                current_buttons = menu.initalise_menu_screen()
+                current_menu = "main menu"
             elif event == "set volume":
                 #finds the slider responsible for the volume
                 for slider in current_buttons:
@@ -75,7 +74,23 @@ if __name__ == "__main__":
                         #adjusts the sim speed to the value of the slider
                         settings["simulation speed"] = slider.value
             elif event == "toggle fullscreen":
+                # flip the flag
                 settings["fullscreen"] = not settings["fullscreen"]
+
+                #recreate the window
+                if settings["fullscreen"]:
+                    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                else:
+                    screen = pygame.display.set_mode((screen_width, screen_length))
+
+                # update the width and the height
+                new_width, new_height = screen.get_size()
+                menu.set_screen(screen, new_width, new_height)
+
+                if current_menu == "options menu":
+                    current_buttons = menu.open_options_menu()
+                elif current_menu == "main menu": #if they weren't anywhere in particular just put them in the main menu
+                    current_buttons = menu.initalise_menu_screen()
             #functionality for more buttons can be easily added later by adding more elif statements here
             else:
                 pass
