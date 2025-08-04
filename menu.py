@@ -92,6 +92,51 @@ class text_box:
     def detect_mouse(self, mouse_position):
         return False
 
+class InputBox:
+    def __init__(self, x, y, w, h, text=''):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = (0, 0, 0)
+        self.text = text
+        FONT = pygame.font.Font(None, 32)
+        self.txt_surface = FONT.render(text, True, self.color)
+        self.active = False
+
+    def handle_event(self, event):
+        FONT = pygame.font.Font(None, 32)
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                #toggle self.active
+                self.active = not self.active
+            else:
+                self.active = False
+        elif event.type == pygame.KEYDOWN:
+            if self.active:
+                if event.key == pygame.K_RETURN:
+                    self.text += "\n"
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                elif event.key == pygame.K_LCTRL:
+                    print(self.text)
+                    self.text = ""
+                else:
+                    self.text += event.unicode
+                #render the text again
+                self.txt_surface = FONT.render(self.text, True, self.color)
+
+
+    def update(self):
+        #resize the box if the text is too big
+        width = max(200, self.txt_surface.get_width()+10)
+        self.rect.w = width
+
+    def draw(self, screen):
+        lines = self.text.split('\n')
+        for i, line in enumerate(lines):
+            line_surf = self.txt_surface = pygame.font.Font(None, 32).render(line, True, self.color)
+            screen.blit(line_surf, (self.rect.x + 5, self.rect.y + 5 + i * 32))  # Adjust Y position for each line
+        pygame.draw.rect(screen, self.color, self.rect, 2)
+
+
 
 def initalise_menu_screen(): #returns a list of objects that get rendered
     return [button((WIDTH//2)-100, 600, 200, 76, (0, 0, 0), "Exit", screen, "quit"), button(WIDTH//2 - 100, 500, 200, 76, (0, 0, 0), "Options", screen, "open options"),
@@ -106,3 +151,17 @@ def open_options_menu(): #creates a surface and then places the options menus bu
     text_box(WIDTH//2-250, 300, 100, 76, "volume", 35, screen),
     slider(WIDTH//2 -150, 400, 300, 76, (255, 255, 255), screen, "set simulation speed", "simulation speed"),
     text_box(WIDTH//2-300, 400, 100, 76, "simulation speed", 25, screen)]
+
+def open_level_select():
+    return [button(WIDTH//10, LENGTH//10, WIDTH//11+55, WIDTH//11, (0, 0, 0), "Level 1", screen, "start level 1"),
+    button(2.7*WIDTH//10, LENGTH//10, WIDTH//11+55, WIDTH//11, (0, 0, 0), "Level 2", screen, "start level 2"),
+    button(4.4*WIDTH//10, LENGTH//10, WIDTH//11+55, WIDTH//11, (0, 0, 0), "Level 3", screen, "start level 3"),
+    button(6.1*WIDTH//10, LENGTH//10, WIDTH//11+55, WIDTH//11, (0, 0, 0), "Level 4", screen, "start level 4"),
+    button(7.8*WIDTH//10, LENGTH//10, WIDTH//11+55, WIDTH//11, (0, 0, 0), "Level 5", screen, "start level 5"),
+    button(WIDTH//20, LENGTH//20, WIDTH//25+35, LENGTH//25, (0, 0, 0), "Back", screen, "close level select")]
+
+def level_gui():
+    return [
+    button(0, 0, WIDTH//25+35, LENGTH//25, (0, 0, 0), "Back", screen, "open level select"),
+    InputBox(0, LENGTH//25, 300, 24*LENGTH//25)
+    ]
