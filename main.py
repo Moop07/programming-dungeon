@@ -7,6 +7,7 @@ screen_length = 720
 screen = pygame.display.set_mode((screen_width, screen_length))
 clock = pygame.time.Clock()
 current_buttons = []
+input_boxes = []
 running = True
 menu.set_screen(screen, screen_width, screen_length)
 pygame.display.set_caption("Programming Dungeon")
@@ -37,12 +38,17 @@ if __name__ == "__main__":
                     if button.detect_mouse(mouse_position):
                         button_events.append(button.button_function())
                         print(button_events)
+            for box in input_boxes:
+                box.handle_event(event)
 
         screen.fill((255, 255, 255))
         mouse_position = pygame.mouse.get_pos()
 
         for button in current_buttons:
             button.draw_self()
+
+        for box in input_boxes:
+            box.draw(screen)
 
 
         #if a button has returned an event it will be in button events
@@ -58,7 +64,7 @@ if __name__ == "__main__":
                 #for the options menu
                 current_buttons = menu.open_options_menu()
                 current_menu = "options menu"
-            elif event == "close options":
+            elif event == "close options" or event == "close level select":
                 current_buttons = menu.initalise_menu_screen()
                 current_menu = "main menu"
             elif event == "set volume":
@@ -89,8 +95,20 @@ if __name__ == "__main__":
 
                 if current_menu == "options menu":
                     current_buttons = menu.open_options_menu()
-                elif current_menu == "main menu": #if they weren't anywhere in particular just put them in the main menu
+                else: #if they weren't anywhere in particular just put them in the main menu
                     current_buttons = menu.initalise_menu_screen()
+            elif event == "open level select":
+                current_buttons = menu.open_level_select()
+                input_boxes = []
+                current_menu = "level select"
+            elif event[:11] == "start level": #somewhat temporary until each level is developed
+                #get all the objects for the menu gui
+                level_data = menu.level_gui()
+                #the input box is always at the end, so we pop that off the level_data array
+                input_boxes = [level_data.pop()]
+                #once the input box is removed we place the rest of our objects in the buttons array
+                current_buttons = level_data
+                current_menu = "level"
             #functionality for more buttons can be easily added later by adding more elif statements here
             else:
                 pass
