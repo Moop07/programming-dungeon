@@ -48,10 +48,10 @@ if __name__ == "__main__":
             button.draw_self()
 
         for box in input_boxes:
-            box.draw(screen)
+            box.draw_self()
         
         if current_menu == "level":
-            pygame.draw.rect(screen, (255, 255, 255), (300, screen_length//25, screen_width-300, 24*screen_length//25))
+            pygame.draw.rect(screen, (255, 255, 255), (300, screen_length//25, 6*screen_width//10, 24*screen_length//25))
 
 
         #if a button has returned an event it will be in button events
