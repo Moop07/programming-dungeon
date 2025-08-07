@@ -92,48 +92,78 @@ class text_box:
     def detect_mouse(self, mouse_position):
         return False
 
-class InputBox:
-    def __init__(self, x, y, w, h, text=''):
-        self.rect = pygame.Rect(x, y, w, h)
-        self.color = (0, 0, 0)
-        self.text = text
-        FONT = pygame.font.Font(None, 32)
-        self.txt_surface = FONT.render(text, True, self.color)
-        self.active = False
+
+class input_box:
+    def __init__(self, xpos, ypos, width, height):
+        #set up the rectangle that the input box is on
+        self.rect = pygame.Rect(xpos, ypos, width, height)
+        self.color = (0, 0, 0) #black
+        self.text = ""
+        self.font = pygame.font.Font(None, 32)
+        self.txt_surface = self.font.render("", True, self.color)
+        self.active = False #by default it is inactive; the user must click on the textbox to start typing
+        self.cursor_position = 0 
 
     def handle_event(self, event):
-        FONT = pygame.font.Font(None, 32)
+        #if the user clicks on the the input box then active
+        #otherwise inactive
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
-                #toggle self.active
                 self.active = not self.active
             else:
                 self.active = False
-        elif event.type == pygame.KEYDOWN:
-            if self.active:
-                if event.key == pygame.K_RETURN:
-                    self.text += "\n"
-                elif event.key == pygame.K_BACKSPACE:
-                    self.text = self.text[:-1]
-                elif event.key == pygame.K_LCTRL:
-                    print(self.text)
-                    self.text = ""
-                else:
-                    self.text += event.unicode
-                #render the text again
-                self.txt_surface = FONT.render(self.text, True, self.color)
 
+        #we add the key the user presses to the text
+        #if self.cursor_position is anything other than len(self.text) we put it in the appropiate position
+        #left and right keys can move the cursor
+        #backspace deletes, enter starts a new line, and ctrl submits (for now)
+        elif event.type == pygame.KEYDOWN and self.active:
+            if event.key == pygame.K_RETURN:
+                self.text = self.text[:self.cursor_position] + '\n' + self.text[self.cursor_position:]
+                self.cursor_position += 1
+            elif event.key == pygame.K_BACKSPACE:
+                if self.cursor_position > 0:
+                    self.text = self.text[:self.cursor_position - 1] + self.text[self.cursor_position:]
+                    self.cursor_position -= 1
+            elif event.key == pygame.K_LEFT:
+                if self.cursor_position > 0:
+                    self.cursor_position -= 1
+            elif event.key == pygame.K_RIGHT:
+                if self.cursor_position < len(self.text):
+                    self.cursor_position += 1
+            elif event.key == pygame.K_LCTRL:
+                print(self.text)
+                self.text = ""
+                self.cursor_position = 0
+            else:
+                self.text = self.text[:self.cursor_position] + event.unicode + self.text[self.cursor_position:]
+                self.cursor_position += len(event.unicode)
 
     def update(self):
-        #resize the box if the text is too big
-        width = max(200, self.txt_surface.get_width()+10)
+        self.txt_surface = self.font.render(self.text, True, self.color)
+        width = max(200, self.txt_surface.get_width() + 10)
         self.rect.w = width
 
-    def draw(self, screen):
+    def draw_self(self):
         lines = self.text.split('\n')
+        y_offset = self.rect.y + 5
+        cursor_x, cursor_y = self.rect.x + 5, y_offset
+
+        character_count = 0
         for i, line in enumerate(lines):
-            line_surf = self.txt_surface = pygame.font.Font(None, 32).render(line, True, self.color)
-            screen.blit(line_surf, (self.rect.x + 5, self.rect.y + 5 + i * 32))  # Adjust Y position for each line
+            line_surface = self.font.render(line, True, self.color)
+            screen.blit(line_surface, (self.rect.x + 5, y_offset + i * 32))
+
+            #determine the cursor's position
+            if character_count <= self.cursor_position <= character_count + len(line):
+                cursor_text = line[:self.cursor_position - character_count]
+                cursor_x = self.rect.x + 5 + self.font.size(cursor_text)[0]
+                cursor_y = y_offset + i * 32
+            character_count += len(line) + 1  #add one for the newline
+
+        if self.active:
+            pygame.draw.line(screen, self.color, (cursor_x, cursor_y), (cursor_x, cursor_y + 32), 2)
+
         pygame.draw.rect(screen, self.color, self.rect, 2)
 
 
@@ -163,5 +193,5 @@ def open_level_select():
 def level_gui():
     return [
     button(0, 0, WIDTH//25+35, LENGTH//25, (0, 0, 0), "Back", screen, "open level select"),
-    InputBox(0, LENGTH//25, 300, 24*LENGTH//25)
+    input_box(0, LENGTH//25, 4*WIDTH//10, 24*LENGTH//25)
     ]
