@@ -11,35 +11,35 @@ The full version will feature 10-20 levels, an endless mode, and complete graphi
 Blackadder is a small scale high level language made for the game. Extensive documentation is below, as well as in the tutorial system in the game
 Blackadder documentation
 
-operators:
-plus: +
-minus: -
-multiply: *
-division: /
-integer division: //
-equality: ==
-and: and
-or: or
+operators:  
+plus: +  
+minus: -  
+multiply: *  
+division: /  
+integer division: //  
+equality: ==  
+and: and  
+or: or  
 
-The blackadder compiler ignores whitespace and new lines, instead using curly brackets {} and semicolons;
-example:
-while True{
-    pass;
-}
+The blackadder compiler ignores whitespace and new lines, instead using curly brackets {} and semicolons;  
+example:  
+while True{  
+    pass;  
+}  
 
-declare any variable using "let". Blackadder does not support specifying the variable type, this is instead inferred from the input
-example:
-let x = 5;
-print(x + 7);
->> 12
+declare any variable using "let". Blackadder does not support specifying the variable type, this is instead inferred from the input  
+example:  
+let x = 5;  
+print(x + 7);  
+>> 12  
 
-define a function using "def"
-example:
-def factorial(n){
-    let total = 1;
-    let i = 1;
-    for(i, i<=n, i = i+1){
-        total = total * i;
-    }
-    return total;
-}
+define a function using "def"  
+example:  
+def factorial(n){  
+    let total = 1;  
+    let i = 1;  
+    for(i, i<=n, i = i+1){  
+        total = total * i;  
+    }  
+    return total;  
+}  
