@@ -41,7 +41,12 @@ class interpreter:
             elif token_string == "=":
                 self.token_list.append(token("ASSIGN", "="))
             elif token_string in self.native_function_names:
-                self.token_list.append(token("NATIVE FUNCTION", token_string))
+                if token_string == "print":
+                    self.token_list.append(token("NATIVE FUNCTION", native.print))
+                elif token_string == "factorial":
+                    self.token_list.append(token("NATIVE FUNCTION", native.factorial))
+                elif token_string == "sqroot":
+                    self.token_list.append(token("NATIVE FUNCTION", native.sqroot))
             else:
                 self.token_list.append(token("UNDEFINED", token_string))
 
@@ -63,7 +68,14 @@ class interpreter:
                 break
             if not in_brackets or open_brackets >= 1:
                 #add on the value of the current token
-                expression += f"{self.current_token.value} "
+                #if the token is a function call there's a bit more faffing about
+                if self.current_token.type == "NATIVE FUNCTION":
+                    value = self.handle_native_function(self.current_token.value)
+                    expression += f"{value} "
+                elif self.current_token.type == "VARIABLE":
+                    expression += f"{self.variables[self.current_token.value]}"
+                else:
+                    expression += f"{self.current_token.value} "
                 #advance to the next token
                 self.get_next_token()
 
@@ -74,6 +86,10 @@ class interpreter:
         print(self.terminal, end = "")
         self.terminal = ""
 
+    def handle_native_function(self, function):
+        self.get_next_token()
+        return function(self.evaluate_expression(in_brackets = True))
+
     def interpret(self):
         self.tokeniser()
         self.current_token = self.token_list[self.token_index]
@@ -81,18 +97,7 @@ class interpreter:
         while self.current_token.type != "EOF":
             #handles defining variables
             if self.current_token.type == "NATIVE FUNCTION":
-                #function_input = self.evaluate_expression(in_brackets = True)
-                match self.current_token.value:
-                    case "print":
-                        self.get_next_token()
-                        native.print(self.evaluate_expression(in_brackets = True))
-                        function_output = None
-                    case "sqroot":
-                        self.get_next_token()
-                        function_output = native.sqroot(self.evaluate_expression(in_brackets = True))
-                    case "factorial":
-                        self.get_next_token()
-                        function_output = native.factorial(self.evaluate_expression(in_brackets = True))
+                self.handle_native_function(self.current_token.value)
             if self.current_token.type == "DEFINE VARIABLE":
                 self.get_next_token()
                 #token type should be undefined until it's defined as a variable
@@ -110,12 +115,11 @@ class interpreter:
                 #the next token must be ";"
                 if self.current_token.type != "SEMICOLON":
                     raise Exception("Expected ';' to follow variable value")
-                #print(f"defining variable {variable_name} with a stored value of {variable_value}")
-
+                print(f"defining variable {variable_name} with a stored value of {variable_value}")
                 #update the list of tokens as we now know what type of token this name refers to
                 for i in self.token_list:
                     if i.value == variable_name:
-                        i.type == "VARIABLE"
+                        i.type = "VARIABLE"
                 #store the variable's name and current value with a key value pair in self.variables
                 self.variables.update({variable_name : variable_value})
             self.update_terminal()
