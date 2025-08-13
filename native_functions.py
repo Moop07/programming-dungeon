@@ -4,17 +4,19 @@ class native_functions:
 
     def factorial(self, finput):
         product = 1
-        for i in range(2, finput):
+        for i in range(2, finput+1):
             product *= i
         return product
     
     def sqroot(self, finput):
         guess = (finput/7)+1
-        for i in range(5):
+        for i in range(100):
             guess = (guess + (finput/guess))/2
+        return guess
 
     def print(self, finput):
         self.terminal += str(finput)
+        return None
     
     def update_terminal(self):
         output = self.terminal
