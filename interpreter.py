@@ -10,7 +10,7 @@ class token:
 
 class interpreter:
     def __init__(self, text):
-        self.text = re.findall(r'==|\w+|[^\w\s]', text)
+        self.text = re.findall(r'<=|==|\w+|[^\w\s]', text)
         self.token_list = []
         self.token_index = 0
         self.current_token = None
@@ -20,7 +20,6 @@ class interpreter:
 
         #only used when the interpreter is in a loop
         self.loops = 0
-        self.loop_conditions = []
         self.loop_condition_ends = []
         self.loop_condition_starts = []
         self.loop_starts = []
@@ -58,6 +57,8 @@ class interpreter:
                 self.token_list.append(token("CLOSE CURLY"))
             elif token_string == "for":
                 self.token_list.append(token("FOR LOOP"))
+            elif token_string == "while":
+                self.token_list.append(token("WHILE LOOP"))
             elif token_string == ",":
                 self.token_list.append(token("COMMA"))
             elif token_string in self.native_function_names:
@@ -222,7 +223,6 @@ class interpreter:
                 while self.current_token.type != "COMMA":
                     loop_condition += str(self.current_token.value)
                     self.get_next_token()
-                self.loop_conditions.append(loop_condition)
                 self.get_next_token()
                 #we're now at the starting point of the loop, but we need to skip over the loop operation the first time around
                 self.loop_starts.append(self.token_index)
@@ -233,6 +233,21 @@ class interpreter:
                 self.loop_condition_ends.append(self.token_index)
                 self.token_index -= 1
                 self.current_token = self.token_list[self.token_index]
+
+            elif self.current_token.type == "WHILE LOOP":
+                #correct syntax for a while loop is while(condition){code}
+                self.loops += 1
+                self.get_next_token()
+                if self.current_token.type != "OPEN BRACKET":
+                    raise Exception("while loop information must be enclosed in parentheses ()")
+                self.get_next_token()
+                self.loop_condition_starts.append(self.token_index)
+                while self.current_token.type != "CLOSE BRACKET":
+                    self.get_next_token()
+                self.loop_condition_ends.append(self.token_index)
+                self.get_next_token()
+                self.loop_starts.append(self.token_index)
+
             
             elif self.current_token.type == "CLOSE CURLY":
                 if self.loops > 0:
@@ -242,7 +257,8 @@ class interpreter:
                         self.token_index = self.loop_starts[-1]-1
                         self.current_token = self.token_list[self.token_index]
                     else:
-                        self.loop_conditions.pop()
+                        self.loop_condition_starts.pop()
+                        self.loop_condition_ends.pop()
                         self.loop_starts.pop()
                         self.loops -= 1
                         open_curlies = 0
@@ -255,8 +271,9 @@ class interpreter:
                                 if open_curlies == 0:
                                     break
                             elif self.current_token.type == "EOF":
-                                raise Exception("If statement was never closed")
+                                raise Exception("Loop was never closed")
                             self.get_next_token()
+                        
                         
 
             elif self.current_token.type == "UNDEFINED":
