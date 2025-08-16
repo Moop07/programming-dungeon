@@ -1,27 +1,10 @@
 let a = 0;
 let b = 1;
 let temp = 0;
-temp = a;
-a = b;
-b = temp + b;
-print(b);
-temp = a;
-a = b;
-b = temp + b;
-print(b);
-temp = a;
-a = b;
-b = temp + b;
-print(b);
-temp = a;
-a = b;
-b = temp + b;
-print(b);
-temp = a;
-a = b;
-b = temp + b;
-print(b);
-temp = a;
-a = b;
-b = temp + b;
+for(i = 0, i<10, i = i + 1){
+    temp = a;
+    a = b;
+    b = temp + b;
+    print(a);
+}
 print(b);
