@@ -18,6 +18,13 @@ class interpreter:
         self.variables = {}
         self.native_function_names = native.get_function_names()
 
+        #only used when the interpreter is in a loop
+        self.loops = 0
+        self.loop_conditions = []
+        self.loop_condition_ends = []
+        self.loop_condition_starts = []
+        self.loop_starts = []
+
     def tokeniser(self):
         #token_string refers to the token while it is a string, also known as a lexeme
         for token_string in self.text:
@@ -49,6 +56,10 @@ class interpreter:
                 self.token_list.append(token("OPEN CURLY"))
             elif token_string == "}":
                 self.token_list.append(token("CLOSE CURLY"))
+            elif token_string == "for":
+                self.token_list.append(token("FOR LOOP"))
+            elif token_string == ",":
+                self.token_list.append(token("COMMA"))
             elif token_string in self.native_function_names:
                 if token_string == "print":
                     self.token_list.append(token("NATIVE FUNCTION", native.print))
@@ -62,19 +73,24 @@ class interpreter:
         self.token_list.append(token("EOF"))
 
     def get_next_token(self):
+        #print(self.current_token.value)
         self.token_index += 1
         if self.current_token.type != "EOF":
             self.current_token = self.token_list[self.token_index]
+        #print(self.current_token.type)
 
     def evaluate_expression(self, in_brackets = False):
         expression = "" #to store our expression in
         open_brackets = 0
-        while self.current_token.type not in ["EOF", "SEMICOLON", "OPEN CURLY"]: #if it reaches the end it should stop
+        while self.current_token.type not in ["EOF", "SEMICOLON", "OPEN CURLY", "COMMA"]: #if it reaches the end it should stop
             if self.current_token.type == "OPEN BRACKET":
                 open_brackets += 1
+                if in_brackets and open_brackets == 1:
+                    self.get_next_token()
+                    continue
             elif self.current_token.type == "CLOSE BRACKET":
                 open_brackets -= 1
-                expression += f"{self.current_token.value} "
+                self.get_next_token()
                 break
             if not in_brackets or open_brackets >= 1:
                 #add on the value of the current token
@@ -100,13 +116,21 @@ class interpreter:
 
     def handle_native_function(self, function):
         self.get_next_token()
-        return function(self.evaluate_expression(in_brackets = True))
+        value = function(self.evaluate_expression(in_brackets = True))
+        if self.current_token.type == "CLOSE BRACKET":
+            self.get_next_token()
+        return value
 
     def interpret(self):
         self.tokeniser()
         self.current_token = self.token_list[self.token_index]
 
         while self.current_token.type != "EOF":
+
+            if self.loops > 0:
+                if self.token_index == self.loop_condition_ends[-1] -1:
+                    self.get_next_token()
+
             #handles defining variables
             if self.current_token.type == "NATIVE FUNCTION":
                 self.handle_native_function(self.current_token.value)
@@ -140,10 +164,16 @@ class interpreter:
                 variable_name = self.current_token.value
                 self.get_next_token()
                 if self.current_token.type != "ASSIGN":
+                    #print(self.token_index)
                     raise Exception("Expected '=' to follow variable name")
                 self.get_next_token()
                 variable_value = self.evaluate_expression()
-                if self.current_token.type != "SEMICOLON":
+                if self.current_token.type == "SEMICOLON":
+                    pass
+                elif self.loops > 0 and self.current_token.type in ("CLOSE BRACKET", "OPEN CURLY"):
+                    # for-loop increment ends at ')' (and after 2a we’re actually at '{')
+                    pass
+                else:
                     raise Exception("Expected ';' to follow variable value")
                 self.variables.update({variable_name : variable_value})
             
@@ -166,12 +196,75 @@ class interpreter:
                         elif self.current_token.type == "EOF":
                             raise Exception("If statement was never closed")
                         self.get_next_token()
+            
+            elif self.current_token.type == "FOR LOOP":
+                self.loops += 1
+                #correct syntax for a for loop is for (variable = start point, condition, loop operation){code}
+                self.get_next_token()
+                if self.current_token.type != "OPEN BRACKET":
+                    raise Exception("for loop information must be enclosed in parentheses ()")
+                self.get_next_token()
+                variable_name = self.current_token.value
+                self.get_next_token()
+                if self.current_token.type != "ASSIGN":
+                    raise Exception("Expected '=' to follow variable name")
+                self.get_next_token()
+                variable_value = self.evaluate_expression()
+                self.variables.update({variable_name : variable_value})
+                for i in self.token_list:
+                    if i.value == variable_name:
+                        i.type = "VARIABLE"
+                if self.current_token.type != "COMMA":
+                    raise Exception("for loop terms must be separated by commas")
+                self.get_next_token()
+                self.loop_condition_starts.append(self.token_index)
+                loop_condition = ""
+                while self.current_token.type != "COMMA":
+                    loop_condition += str(self.current_token.value)
+                    self.get_next_token()
+                self.loop_conditions.append(loop_condition)
+                self.get_next_token()
+                #we're now at the starting point of the loop, but we need to skip over the loop operation the first time around
+                self.loop_starts.append(self.token_index)
+                while self.current_token.type != "CLOSE BRACKET":
+                    self.get_next_token()
+                self.get_next_token()
+                self.get_next_token()
+                self.loop_condition_ends.append(self.token_index)
+                self.token_index -= 1
+                self.current_token = self.token_list[self.token_index]
+            
+            elif self.current_token.type == "CLOSE CURLY":
+                if self.loops > 0:
+                    self.token_index = self.loop_condition_starts[-1]
+                    self.current_token = self.token_list[self.token_index]
+                    if self.evaluate_expression():
+                        self.token_index = self.loop_starts[-1]-1
+                        self.current_token = self.token_list[self.token_index]
+                    else:
+                        self.loop_conditions.pop()
+                        self.loop_starts.pop()
+                        self.loops -= 1
+                        open_curlies = 0
+                        #this iterates all the way to the end of the loop
+                        while self.current_token.type != "EOF":
+                            if self.current_token.type == "OPEN CURLY":
+                                open_curlies += 1
+                            elif self.current_token.type == "CLOSE CURLY":
+                                open_curlies -= 1
+                                if open_curlies == 0:
+                                    break
+                            elif self.current_token.type == "EOF":
+                                raise Exception("If statement was never closed")
+                            self.get_next_token()
+                        
 
             elif self.current_token.type == "UNDEFINED":
                 raise Exception(f"'{self.current_token.value}' is not defined")
 
             self.update_terminal()
             self.get_next_token()
+
 
 file = open("player_code.txt", "rt")
 code = file.read()
