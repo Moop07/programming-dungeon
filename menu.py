@@ -133,8 +133,7 @@ class input_box:
                     self.cursor_position += 1
             elif event.key == pygame.K_LCTRL:
                 print(self.text)
-                self.text = ""
-                self.cursor_position = 0
+                return self.text
             else:
                 self.text = self.text[:self.cursor_position] + event.unicode + self.text[self.cursor_position:]
                 self.cursor_position += len(event.unicode)
