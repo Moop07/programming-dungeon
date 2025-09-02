@@ -23,5 +23,17 @@ class native_functions:
         self.terminal = ""
         return output
     
+    def move_player_up(self):
+        return "move up"
+
+    def move_player_down(self):
+        return "move down"
+    
+    def move_player_left(self):
+        return "move left"
+
+    def move_player_right(self):
+        return "move right"
+    
     def get_function_names(self):
-        return ["factorial", "sqroot", "print"]
+        return ["factorial", "sqroot", "print", "move_player_up", "move_player_down", "move_player_right", "move_player_left"]
