@@ -17,6 +17,7 @@ class interpreter:
         self.terminal = ""
         self.variables = {}
         self.native_function_names = native.get_function_names()
+        self.in_if_statement = False
 
         #only used when the interpreter is in a loop
         self.loops = 0
@@ -179,8 +180,9 @@ class interpreter:
                 self.variables.update({variable_name : variable_value})
             
             elif self.current_token.type == "IF":
+                self.in_if_statement = True
                 self.get_next_token()
-                condition = self.evaluate_expression()
+                condition = self.evaluate_expression(in_brackets=True)
                 #if the condition is false we skip over the code entirely
                 if condition == False:
                     #since the expression will open with a curly bracket we set open_curlies to 1
@@ -250,7 +252,7 @@ class interpreter:
 
             
             elif self.current_token.type == "CLOSE CURLY":
-                if self.loops > 0:
+                if self.loops > 0 and not self.in_if_statement:
                     self.token_index = self.loop_condition_starts[-1]
                     self.current_token = self.token_list[self.token_index]
                     if self.evaluate_expression():
@@ -273,6 +275,7 @@ class interpreter:
                             elif self.current_token.type == "EOF":
                                 raise Exception("Loop was never closed")
                             self.get_next_token()
+                self.in_if_statement = False
                         
                         
 
