@@ -1,5 +1,6 @@
 import pygame
 import menu
+import level
 
 pygame.init()
 screen_width = 720
@@ -11,7 +12,7 @@ input_boxes = []
 running = True
 menu.set_screen(screen, screen_width, screen_length)
 pygame.display.set_caption("Programming Dungeon")
-
+player = level.player(500, 500)
 
 settings = {
     "volume" : 50,
@@ -39,7 +40,9 @@ if __name__ == "__main__":
                         button_events.append(button.button_function())
                         print(button_events)
             for box in input_boxes:
-                box.handle_event(event)
+                code = box.handle_event(event)
+                if code != None:
+                    player.get_code(code)
 
         screen.fill((255, 255, 255))
         mouse_position = pygame.mouse.get_pos()
@@ -49,9 +52,10 @@ if __name__ == "__main__":
 
         for box in input_boxes:
             box.draw_self()
-        
+            
         if current_menu == "level":
-            pygame.draw.rect(screen, (255, 255, 255), (300, screen_length//25, 6*screen_width//10, 24*screen_length//25))
+            #pygame.draw.rect(screen, (255, 255, 255), (300, screen_length//25, 6*screen_width//10, 24*screen_length//25))
+            pass
 
 
         #if a button has returned an event it will be in button events
