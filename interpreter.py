@@ -1,6 +1,7 @@
 import re
 from native_functions import native_functions
 native = native_functions()
+from tokeniser import tokenise
 
 
 class token:
@@ -25,53 +26,15 @@ class interpreter:
         self.loop_condition_starts = []
         self.loop_starts = []
 
+        #used for handling nested expressions
+        self.if_statements = 0
+        self.nesting_types = []
+
     def tokeniser(self):
         #token_string refers to the token while it is a string, also known as a lexeme
         for token_string in self.text:
-            if token_string.isdigit(): #if the token is a number
-                self.token_list.append(token("INTEGER", int(token_string)))
-            elif token_string == "+":
-                self.token_list.append(token("PLUS", "+"))
-            elif token_string == "-":
-                self.token_list.append(token("MINUS", "-"))
-            elif token_string == "/":
-                self.token_list.append(token("DIVIDE", "/"))
-            elif token_string == "*":
-                self.token_list.append(token("MULTIPLY", "*"))
-            elif token_string == "(":
-                self.token_list.append(token("OPEN BRACKET", "("))
-            elif token_string == ")":
-                self.token_list.append(token("CLOSE BRACKET", ")"))
-            elif token_string == ";":
-                self.token_list.append(token("SEMICOLON", ";"))
-            elif token_string == "let":
-                self.token_list.append(token("DEFINE VARIABLE", "let"))
-            elif token_string == "=":
-                self.token_list.append(token("ASSIGN", "="))
-            elif token_string == "if":
-                self.token_list.append(token("IF"))
-            elif token_string == "==":
-                self.token_list.append(token("EQUALS", "=="))
-            elif token_string == "{":
-                self.token_list.append(token("OPEN CURLY"))
-            elif token_string == "}":
-                self.token_list.append(token("CLOSE CURLY"))
-            elif token_string == "for":
-                self.token_list.append(token("FOR LOOP"))
-            elif token_string == "while":
-                self.token_list.append(token("WHILE LOOP"))
-            elif token_string == ",":
-                self.token_list.append(token("COMMA"))
-            elif token_string in self.native_function_names:
-                if token_string == "print":
-                    self.token_list.append(token("NATIVE FUNCTION", native.print))
-                elif token_string == "factorial":
-                    self.token_list.append(token("NATIVE FUNCTION", native.factorial))
-                elif token_string == "sqroot":
-                    self.token_list.append(token("NATIVE FUNCTION", native.sqroot))
-            else:
-                self.token_list.append(token("UNDEFINED", token_string))
-
+            token_data = tokenise(token_string)
+            self.token_list.append(token(token_data[0], token_data[1]))
         self.token_list.append(token("EOF"))
 
     def get_next_token(self):
@@ -118,6 +81,8 @@ class interpreter:
 
     def handle_native_function(self, function):
         self.get_next_token()
+        if isinstance(function, str):
+            function = getattr(native, function)
         value = function(self.evaluate_expression(in_brackets = True))
         if self.current_token.type == "CLOSE BRACKET":
             self.get_next_token()
@@ -180,11 +145,13 @@ class interpreter:
                 self.variables.update({variable_name : variable_value})
             
             elif self.current_token.type == "IF":
-                self.in_if_statement = True
+                self.if_statements += 1
+                self.nesting_types.append("if")
                 self.get_next_token()
                 condition = self.evaluate_expression(in_brackets=True)
                 #if the condition is false we skip over the code entirely
                 if condition == False:
+                    self.nesting_types.pop()
                     #since the expression will open with a curly bracket we set open_curlies to 1
                     open_curlies = 1
                     self.get_next_token()
@@ -201,6 +168,7 @@ class interpreter:
                         self.get_next_token()
             
             elif self.current_token.type == "FOR LOOP":
+                self.nesting_types.append("loop")
                 self.loops += 1
                 #correct syntax for a for loop is for (variable = start point, condition, loop operation){code}
                 self.get_next_token()
@@ -237,6 +205,7 @@ class interpreter:
                 self.current_token = self.token_list[self.token_index]
 
             elif self.current_token.type == "WHILE LOOP":
+                self.nesting_types.append("loop")
                 #correct syntax for a while loop is while(condition){code}
                 self.loops += 1
                 self.get_next_token()
@@ -252,31 +221,34 @@ class interpreter:
 
             
             elif self.current_token.type == "CLOSE CURLY":
-                if self.loops > 0 and not self.in_if_statement:
-                    self.token_index = self.loop_condition_starts[-1]
-                    self.current_token = self.token_list[self.token_index]
-                    if self.evaluate_expression():
-                        self.token_index = self.loop_starts[-1]-1
+                if self.nesting_types[-1] == "loop":
+                    if self.loops > 0:
+                        self.token_index = self.loop_condition_starts[-1]
                         self.current_token = self.token_list[self.token_index]
-                    else:
-                        self.loop_condition_starts.pop()
-                        self.loop_condition_ends.pop()
-                        self.loop_starts.pop()
-                        self.loops -= 1
-                        open_curlies = 0
-                        #this iterates all the way to the end of the loop
-                        while self.current_token.type != "EOF":
-                            if self.current_token.type == "OPEN CURLY":
-                                open_curlies += 1
-                            elif self.current_token.type == "CLOSE CURLY":
-                                open_curlies -= 1
-                                if open_curlies == 0:
-                                    break
-                            elif self.current_token.type == "EOF":
-                                raise Exception("Loop was never closed")
-                            self.get_next_token()
-                self.in_if_statement = False
-                        
+                        if self.evaluate_expression():
+                            self.token_index = self.loop_starts[-1]-1
+                            self.current_token = self.token_list[self.token_index]
+                        else:
+                            self.loop_condition_starts.pop()
+                            self.loop_condition_ends.pop()
+                            self.loop_starts.pop()
+                            self.loops -= 1
+                            open_curlies = 0
+                            #this iterates all the way to the end of the loop
+                            while self.current_token.type != "EOF":
+                                if self.current_token.type == "OPEN CURLY":
+                                    open_curlies += 1
+                                elif self.current_token.type == "CLOSE CURLY":
+                                    open_curlies -= 1
+                                    if open_curlies == 0:
+                                        break
+                                elif self.current_token.type == "EOF":
+                                    raise Exception("Loop was never closed")
+                                self.get_next_token()
+                            self.nesting_types.pop()
+                elif self.nesting_types[-1] == "if":
+                    self.if_statements -= 1           
+                    self.nesting_types.pop()             
                         
 
             elif self.current_token.type == "UNDEFINED":
