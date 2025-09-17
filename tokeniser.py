@@ -17,7 +17,11 @@ token_table = {
     "," : ("COMMA", ","),
     "print" : ("NATIVE FUNCTION", "print"),
     "factorial" : ("NATIVE FUNCTION", "factorial"),
-    "sqroot" : ("NATIVE FUNCTION", "sqroot")
+    "sqroot" : ("NATIVE FUNCTION", "sqroot"),
+    "move_player_up" : ("NATIVE FUNCTION", "move_player_up"),
+    "move_player_down" : ("NATIVE FUNCTION", "move_player_down"),
+    "move_player_left" : ("NATIVE FUNCTION", "move_player_left"),
+    "move_player_right" : ("NATIVE FUNCTION" , "move_player_right")
 }
 def tokenise(token_string):
     output = []
