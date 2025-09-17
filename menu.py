@@ -10,6 +10,7 @@ def set_screen(input_screen, width, length):
     screen = input_screen
     WIDTH = width
     LENGTH = length
+
 class button:
     def __init__(self, xpos, ypos, width, height, colour, text, screen, function):
         self.xpos = xpos
@@ -65,7 +66,7 @@ class slider(button):
 
     def detect_mouse(self, mouse_position):
         if self.xpos+self.width >= mouse_position[0] >= self.xpos and self.ypos+self.height >= mouse_position[1] >= self.ypos:
-            self.value = (mouse_position[0]-self.xpos)*100/self.width
+            self.value = (mouse_position[0]-self.xpos)*100//self.width
             return True
         else:
             return False
