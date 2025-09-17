@@ -3,16 +3,17 @@ import menu
 import level
 
 pygame.init()
-screen_width = 720
-screen_length = 720
-screen = pygame.display.set_mode((screen_width, screen_length))
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+screen_width, screen_length = screen.get_size()
 clock = pygame.time.Clock()
 current_buttons = []
 input_boxes = []
 running = True
 menu.set_screen(screen, screen_width, screen_length)
 pygame.display.set_caption("Programming Dungeon")
-player = level.player(500, 500)
+level.set_screen(screen)
+player = level.player(screen_width*0.4, screen_length*0.5)
+player_tick = 0
 
 settings = {
     "volume" : 50,
@@ -26,6 +27,7 @@ button_events = []
 mouse_position = (0, 0)
 current_buttons += menu.initalise_menu_screen()
 current_menu = "main menu"
+
 if __name__ == "__main__":
     while running:
         for event in pygame.event.get():
@@ -47,6 +49,7 @@ if __name__ == "__main__":
         screen.fill((255, 255, 255))
         mouse_position = pygame.mouse.get_pos()
 
+
         for button in current_buttons:
             button.draw_self()
 
@@ -54,9 +57,14 @@ if __name__ == "__main__":
             box.draw_self()
             
         if current_menu == "level":
-            #pygame.draw.rect(screen, (255, 255, 255), (300, screen_length//25, 6*screen_width//10, 24*screen_length//25))
-            pass
-
+            player.draw_self()
+            if player_tick == settings["simulation speed"]:
+                player.follow_instruction()
+                player_tick = 0
+            player_tick += 1
+            for item in level_objects:
+                item.draw_self()
+            level.check_win()
 
         #if a button has returned an event it will be in button events
         for event in button_events:
@@ -85,7 +93,7 @@ if __name__ == "__main__":
                 for slider in current_buttons:
                     if slider.variable == "simulation speed":
                         #adjusts the sim speed to the value of the slider
-                        settings["simulation speed"] = slider.value
+                        settings["simulation speed"] = 100 - slider.value
             elif event == "toggle fullscreen":
                 # flip the flag
                 settings["fullscreen"] = not settings["fullscreen"]
@@ -109,8 +117,10 @@ if __name__ == "__main__":
                 input_boxes = []
                 current_menu = "level select"
             elif event[:11] == "start level": #somewhat temporary until each level is developed
+
                 #get all the objects for the menu gui
                 level_data = menu.level_gui()
+                level_objects = level.level(int(event[-1]))
                 #the input box is always at the end, so we pop that off the level_data array
                 input_boxes = [level_data.pop()]
                 #once the input box is removed we place the rest of our objects in the buttons array
