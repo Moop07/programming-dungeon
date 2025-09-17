@@ -1,4 +1,4 @@
-import re
+ import re
 from native_functions import native_functions
 native = native_functions()
 from tokeniser import tokenise
@@ -11,7 +11,7 @@ class token:
 
 class interpreter:
     def __init__(self, text):
-        self.text = re.findall(r'<=|==|\w+|[^\w\s]', text)
+        self.text = re.findall(r'>=|<=|==|\w+|[^\w\s]', text)
         self.token_list = []
         self.token_index = 0
         self.current_token = None
@@ -19,6 +19,7 @@ class interpreter:
         self.variables = {}
         self.native_function_names = native.get_function_names()
         self.in_if_statement = False
+        self.events = []
 
         #only used when the interpreter is in a loop
         self.loops = 0
@@ -81,9 +82,16 @@ class interpreter:
 
     def handle_native_function(self, function):
         self.get_next_token()
+        if function in ["move_player_up", "move_player_down", "move_player_right", "move_player_left"]:
+            function_type = "no input"
+        else:
+            function_type = "input"
         if isinstance(function, str):
             function = getattr(native, function)
-        value = function(self.evaluate_expression(in_brackets = True))
+        if function_type == "input":
+            value = function(self.evaluate_expression(in_brackets = True))
+        else:
+            value = function()
         if self.current_token.type == "CLOSE BRACKET":
             self.get_next_token()
         return value
@@ -100,7 +108,9 @@ class interpreter:
 
             #handles defining variables
             if self.current_token.type == "NATIVE FUNCTION":
-                self.handle_native_function(self.current_token.value)
+                event = self.handle_native_function(self.current_token.value)
+                if event:
+                    self.events.append(event)
             
             elif self.current_token.type == "DEFINE VARIABLE":
                 self.get_next_token()
@@ -256,12 +266,13 @@ class interpreter:
 
             self.update_terminal()
             self.get_next_token()
+        return self.events
 
 
-file = open("player_code.txt", "rt")
-code = file.read()
+#file = open("player_code.txt", "rt")
+#code = file.read()
 
-my_interpreter = interpreter(code)
-my_interpreter.interpret()
+#my_interpreter = interpreter(code)
+#my_interpreter.interpret()
 
-file.close()
+#file.close()
