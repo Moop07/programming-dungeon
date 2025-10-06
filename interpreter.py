@@ -1,4 +1,4 @@
- import re
+import re
 from native_functions import native_functions
 native = native_functions()
 from tokeniser import tokenise
@@ -10,8 +10,9 @@ class token:
         self.value = value
 
 class interpreter:
-    def __init__(self, text):
-        self.text = re.findall(r'>=|<=|==|\w+|[^\w\s]', text)
+    def __init__(self):
+        self.run_code = False
+
         self.token_list = []
         self.token_index = 0
         self.current_token = None
@@ -20,6 +21,7 @@ class interpreter:
         self.native_function_names = native.get_function_names()
         self.in_if_statement = False
         self.events = []
+        self.text = []
 
         #only used when the interpreter is in a loop
         self.loops = 0
@@ -31,11 +33,41 @@ class interpreter:
         self.if_statements = 0
         self.nesting_types = []
 
+    def reset(self):
+        self.run_code = False
+
+        self.token_list = []
+        self.token_index = 0
+        self.current_token = None
+        self.terminal = ""
+        self.variables = {}
+        self.native_function_names = native.get_function_names()
+        self.in_if_statement = False
+        self.events = []
+        self.text = []
+
+        #only used when the interpreter is in a loop
+        self.loops = 0
+        self.loop_condition_ends = []
+        self.loop_condition_starts = []
+        self.loop_starts = []
+
+        #used for handling nested expressions
+        self.if_statements = 0
+        self.nesting_types = []
+
+
+    def get_code(self, text):
+        self.text = re.findall(r'>=|<=|==|\w+|[^\w\s]', text)
+        self.tokeniser()
+        #self.interpret()
+
     def tokeniser(self):
         #token_string refers to the token while it is a string, also known as a lexeme
         for token_string in self.text:
             token_data = tokenise(token_string)
             self.token_list.append(token(token_data[0], token_data[1]))
+            #print(token_data[0], token_data[1])
         self.token_list.append(token("EOF"))
 
     def get_next_token(self):
@@ -82,36 +114,37 @@ class interpreter:
 
     def handle_native_function(self, function):
         self.get_next_token()
-        if function in ["move_player_up", "move_player_down", "move_player_right", "move_player_left"]:
-            function_type = "no input"
-        else:
+        if function in ["factorial", "sqroot", "print"]:
             function_type = "input"
+        else:
+            function_type = "no input"
         if isinstance(function, str):
             function = getattr(native, function)
         if function_type == "input":
             value = function(self.evaluate_expression(in_brackets = True))
         else:
-            value = function()
+            value = None
+            function()
+            
         if self.current_token.type == "CLOSE BRACKET":
             self.get_next_token()
         return value
 
     def interpret(self):
-        self.tokeniser()
-        self.current_token = self.token_list[self.token_index]
+        if self.run_code:
+            #self.tokeniser()
+            self.current_token = self.token_list[self.token_index]
 
-        while self.current_token.type != "EOF":
-
+            #while self.current_token.type != "EOF":
             if self.loops > 0:
                 if self.token_index == self.loop_condition_ends[-1] -1:
                     self.get_next_token()
 
-            #handles defining variables
             if self.current_token.type == "NATIVE FUNCTION":
                 event = self.handle_native_function(self.current_token.value)
                 if event:
                     self.events.append(event)
-            
+
             elif self.current_token.type == "DEFINE VARIABLE":
                 self.get_next_token()
                 #token type should be undefined until it's defined as a variable
@@ -136,7 +169,7 @@ class interpreter:
                         i.type = "VARIABLE"
                 #store the variable's name and current value with a key value pair in self.variables
                 self.variables.update({variable_name : variable_value})
-            
+
             elif self.current_token.type == "VARIABLE":
                 variable_name = self.current_token.value
                 self.get_next_token()
@@ -153,7 +186,7 @@ class interpreter:
                 else:
                     raise Exception("Expected ';' to follow variable value")
                 self.variables.update({variable_name : variable_value})
-            
+
             elif self.current_token.type == "IF":
                 self.if_statements += 1
                 self.nesting_types.append("if")
@@ -176,7 +209,7 @@ class interpreter:
                         elif self.current_token.type == "EOF":
                             raise Exception("If statement was never closed")
                         self.get_next_token()
-            
+
             elif self.current_token.type == "FOR LOOP":
                 self.nesting_types.append("loop")
                 self.loops += 1
@@ -213,7 +246,6 @@ class interpreter:
                 self.loop_condition_ends.append(self.token_index)
                 self.token_index -= 1
                 self.current_token = self.token_list[self.token_index]
-
             elif self.current_token.type == "WHILE LOOP":
                 self.nesting_types.append("loop")
                 #correct syntax for a while loop is while(condition){code}
@@ -229,7 +261,6 @@ class interpreter:
                 self.get_next_token()
                 self.loop_starts.append(self.token_index)
 
-            
             elif self.current_token.type == "CLOSE CURLY":
                 if self.nesting_types[-1] == "loop":
                     if self.loops > 0:
@@ -259,14 +290,18 @@ class interpreter:
                 elif self.nesting_types[-1] == "if":
                     self.if_statements -= 1           
                     self.nesting_types.pop()             
-                        
+                    
+        elif self.current_token.type == "UNDEFINED":
+            raise Exception(f"'{self.current_token.value}' is not defined")
 
-            elif self.current_token.type == "UNDEFINED":
-                raise Exception(f"'{self.current_token.value}' is not defined")
 
-            self.update_terminal()
-            self.get_next_token()
-        return self.events
+        if self.token_index == len(self.token_list) - 1:
+            self.run_code = False
+            self.token_index = 0
+            return None
+        self.update_terminal()
+        self.get_next_token()
+        #print(self.current_token)
 
 
 #file = open("player_code.txt", "rt")
