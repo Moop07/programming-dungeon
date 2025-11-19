@@ -294,11 +294,10 @@ class interpreter:
         elif self.current_token.type == "UNDEFINED":
             raise Exception(f"'{self.current_token.value}' is not defined")
 
-
         if self.token_index == len(self.token_list) - 1:
             self.run_code = False
             self.token_index = 0
-            return None
+            return True
         self.update_terminal()
         self.get_next_token()
         #print(self.current_token)
